@@ -164,10 +164,21 @@ func NewDecoder(r Reader, header ...string) (dec *Decoder, err error) {
 // Fields with inline tags that have a non-empty prefix must not be cyclic
 // structures. Passing such values to Decode will result in an infinite loop.
 func (d *Decoder) Decode(v interface{}) (err error) {
+	record, err := d.r.Read()
+	if err != nil {
+		return err
+	}
+
+	return d.DecodeRecord(record, v)
+}
+
+func (d *Decoder) DecodeRecord(record []string, v interface{}) (err error) {
 	val := reflect.ValueOf(v)
 	if val.Kind() != reflect.Ptr || val.IsNil() {
 		return &InvalidDecodeError{Type: reflect.TypeOf(v)}
 	}
+
+	d.record = record
 
 	elem := indirect(val.Elem())
 	switch elem.Kind() {
@@ -322,10 +333,10 @@ func (d *Decoder) decodeArray(v reflect.Value) error {
 }
 
 func (d *Decoder) decodeStruct(v reflect.Value) (err error) {
-	d.record, err = d.r.Read()
-	if err != nil {
-		return err
-	}
+	// d.record, err = d.r.Read()
+	// if err != nil {
+	// 	return err
+	// }
 
 	if len(d.record) != len(d.header) {
 		return ErrFieldCount
